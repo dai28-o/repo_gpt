@@ -1,0 +1,25 @@
+from datetime import datetime, timedelta
+from typing import Optional
+
+from jose import JWTError, jwt
+
+from .config import get_settings
+
+
+def create_access_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:
+    settings = get_settings()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.access_token_expire_minutes))
+    to_encode = {"sub": subject, "exp": expire}
+    return jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
+
+
+def decode_access_token(token: str) -> str:
+    settings = get_settings()
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+    except JWTError as exc:
+        raise ValueError("Invalid token") from exc
+    subject: Optional[str] = payload.get("sub")
+    if subject is None:
+        raise ValueError("Invalid token payload")
+    return subject
